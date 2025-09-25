@@ -55,6 +55,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    box-sizing: border-box;
 }
 
 html {
@@ -86,6 +87,8 @@ body {
 .logo {
     display: flex;
     align-items: center;
+    justify-content: center;
+    gap: 1rem;
     gap: var(--spacing-sm);
     font-size: 1.5rem;
     font-weight: 700;

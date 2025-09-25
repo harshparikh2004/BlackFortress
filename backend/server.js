@@ -79,6 +79,9 @@ app.get('/api/test-db', async (req, res) => {
         });
     }
 });
+// Auth routes
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
 
 // 404 handler
 app.use((req, res, next) => {

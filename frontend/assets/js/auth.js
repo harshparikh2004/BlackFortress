@@ -3,18 +3,61 @@
 // API Configuration
 const API_BASE_URL = 'http://localhost:5000/api';
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize auth functionality based on current page
+document.addEventListener('DOMContentLoaded', function () {
+    // Modern workflow: page guards and navigation
     const currentPage = window.location.pathname;
-    
+    let user = null;
+    if (localStorage.getItem('user')) {
+        user = JSON.parse(localStorage.getItem('user'));
+    } else if (sessionStorage.getItem('user')) {
+        user = JSON.parse(sessionStorage.getItem('user'));
+    }
+
+    // Guard: If logged in, block login/register and redirect to dashboard with hint
+    if (user && (currentPage.includes('login.html') || currentPage.includes('register.html'))) {
+        showAlert('You are already logged in. Please logout to access this page.', 'info');
+        setTimeout(() => {
+            window.location.href = 'dashboard.html';
+        }, 1500);
+        return;
+    }
+    // Guard: If not logged in, block dashboard and redirect to login
+    if (!user && currentPage.includes('dashboard.html')) {
+        showAlert('Please login to access your dashboard.', 'info');
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 1500);
+        return;
+    }
+
+    // Initialize auth functionality based on current page
     if (currentPage.includes('login.html')) {
         initializeLoginForm();
     } else if (currentPage.includes('register.html')) {
         initializeRegisterForm();
     }
-    
-    // Initialize common auth functionality
-    initializePasswordToggles();
+
+    // Password toggle: event delegation for all .password-toggle buttons
+    document.addEventListener('click', function (e) {
+        if (e.target.classList.contains('password-toggle') || (e.target.closest('.password-toggle') && e.target.tagName === 'I')) {
+            const btn = e.target.classList.contains('password-toggle') ? e.target : e.target.closest('.password-toggle');
+            const input = btn.parentElement.querySelector('input[type="password"], input[type="text"]');
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (icon) {
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                }
+            } else {
+                input.type = 'password';
+                if (icon) {
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            }
+        }
+    });
     initializeFormValidation();
 });
 
@@ -22,37 +65,37 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializeLoginForm() {
     const loginForm = document.getElementById('loginForm');
     const loginBtn = document.getElementById('loginBtn');
-    
+
     if (!loginForm) return;
-    
+
     loginForm.addEventListener('submit', handleLogin);
-    
+
     // Real-time validation
     const identifier = document.getElementById('loginIdentifier');
     const password = document.getElementById('loginPassword');
-    
+
     identifier.addEventListener('input', () => validateLoginIdentifier(identifier.value));
     password.addEventListener('input', () => validateLoginPassword(password.value));
 }
 
 async function handleLogin(e) {
     e.preventDefault();
-    
+
     const formData = new FormData(e.target);
     const loginData = {
         identifier: formData.get('identifier').trim(),
         password: formData.get('password'),
         rememberMe: formData.get('rememberMe') === 'on'
     };
-    
+
     // Validate form
     if (!validateLoginForm(loginData)) {
         return;
     }
-    
+
     // Show loading state
     showLoadingState('loginBtn');
-    
+
     try {
         const response = await fetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
@@ -61,17 +104,17 @@ async function handleLogin(e) {
             },
             body: JSON.stringify(loginData)
         });
-        
+
         const result = await response.json();
-        
+
         if (response.ok) {
             showAlert('Login successful! Redirecting...', 'success');
-            
+
             // Store token
             const storage = loginData.rememberMe ? localStorage : sessionStorage;
             storage.setItem('authToken', result.token);
             storage.setItem('user', JSON.stringify(result.user));
-            
+
             // Redirect based on role
             setTimeout(() => {
                 if (result.user.role === 'Admin') {
@@ -94,17 +137,17 @@ async function handleLogin(e) {
 // ===== REGISTER FORM =====
 function initializeRegisterForm() {
     const registerForm = document.getElementById('registerForm');
-    
+
     if (!registerForm) return;
-    
+
     registerForm.addEventListener('submit', handleRegister);
-    
+
     // Real-time validation
     const username = document.getElementById('username');
     const email = document.getElementById('email');
     const password = document.getElementById('password');
     const confirmPassword = document.getElementById('confirmPassword');
-    
+
     username.addEventListener('input', (e) => validateUsername(e.target.value));
     email.addEventListener('input', (e) => validateEmail(e.target.value));
     password.addEventListener('input', (e) => {
@@ -121,7 +164,7 @@ function initializeRegisterForm() {
 
 async function handleRegister(e) {
     e.preventDefault();
-    
+
     const formData = new FormData(e.target);
     const registerData = {
         username: formData.get('username').trim(),
@@ -131,15 +174,15 @@ async function handleRegister(e) {
         role: formData.get('role'),
         agreeTerms: formData.get('agreeTerms') === 'on'
     };
-    
+
     // Validate form
     if (!validateRegisterForm(registerData)) {
         return;
     }
-    
+
     // Show loading state
     showLoadingState('registerBtn');
-    
+
     try {
         const response = await fetch(`${API_BASE_URL}/auth/register`, {
             method: 'POST',
@@ -148,29 +191,24 @@ async function handleRegister(e) {
             },
             body: JSON.stringify(registerData)
         });
-        
+
         const result = await response.json();
-        
+
         if (response.ok) {
-            showAlert('Account created successfully! Redirecting to login...', 'success');
-            
+            showAlert('Account created successfully! Redirecting to dashboard...', 'success');
+
+            // Store user info in localStorage
+            localStorage.setItem('user', JSON.stringify(result.user));
+
             // Clear form
             document.getElementById('registerForm').reset();
             clearPasswordStrength();
-            
-            // Redirect to login
+
             setTimeout(() => {
-                window.location.href = 'login.html';
-            }, 2000);
+                window.location.href = 'dashboard.html';
+            }, 1500);
         } else {
             showAlert(result.message || 'Registration failed. Please try again.', 'error');
-            
-            // Show specific field errors
-            if (result.errors) {
-                result.errors.forEach(error => {
-                    showFieldError(error.field, error.message);
-                });
-            }
         }
     } catch (error) {
         console.error('Registration error:', error);
@@ -183,34 +221,34 @@ async function handleRegister(e) {
 // ===== FORM VALIDATION =====
 function validateLoginForm(data) {
     let isValid = true;
-    
+
     // Clear previous errors
     clearFormErrors();
-    
+
     if (!validateLoginIdentifier(data.identifier)) {
         isValid = false;
     }
-    
+
     if (!validateLoginPassword(data.password)) {
         isValid = false;
     }
-    
+
     return isValid;
 }
 
 function validateRegisterForm(data) {
     let isValid = true;
-    
+
     // Clear previous errors
     clearFormErrors();
-    
+
     if (!validateUsername(data.username)) isValid = false;
     if (!validateEmail(data.email)) isValid = false;
     if (!validatePassword(data.password)) isValid = false;
     if (!validatePasswordMatch(data.password, data.confirmPassword)) isValid = false;
     if (!validateRole(data.role)) isValid = false;
     if (!validateTerms(data.agreeTerms)) isValid = false;
-    
+
     return isValid;
 }
 
@@ -219,12 +257,12 @@ function validateLoginIdentifier(identifier) {
         showFieldError('identifier', 'Email or username is required');
         return false;
     }
-    
+
     if (identifier.length < 3) {
         showFieldError('identifier', 'Must be at least 3 characters');
         return false;
     }
-    
+
     clearFieldError('identifier');
     return true;
 }
@@ -234,7 +272,7 @@ function validateLoginPassword(password) {
         showFieldError('password', 'Password is required');
         return false;
     }
-    
+
     clearFieldError('password');
     return true;
 }
@@ -244,22 +282,22 @@ function validateUsername(username) {
         showFieldError('username', 'Username is required');
         return false;
     }
-    
+
     if (username.length < 3) {
         showFieldError('username', 'Username must be at least 3 characters');
         return false;
     }
-    
+
     if (username.length > 20) {
         showFieldError('username', 'Username cannot exceed 20 characters');
         return false;
     }
-    
+
     if (!/^[a-zA-Z0-9_]+$/.test(username)) {
         showFieldError('username', 'Username can only contain letters, numbers, and underscores');
         return false;
     }
-    
+
     showFieldSuccess('username', 'Username is available');
     return true;
 }
@@ -269,13 +307,13 @@ function validateEmail(email) {
         showFieldError('email', 'Email is required');
         return false;
     }
-    
+
     const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
     if (!emailRegex.test(email)) {
         showFieldError('email', 'Please enter a valid email address');
         return false;
     }
-    
+
     showFieldSuccess('email', 'Email format is valid');
     return true;
 }
@@ -285,12 +323,12 @@ function validatePassword(password) {
         showFieldError('password', 'Password is required');
         return false;
     }
-    
+
     const requirements = getPasswordRequirements(password);
     const unmetRequirements = Object.entries(requirements)
         .filter(([key, met]) => !met)
         .map(([key]) => key);
-    
+
     if (unmetRequirements.length > 0) {
         const messages = {
             length: 'At least 8 characters',
@@ -298,12 +336,12 @@ function validatePassword(password) {
             lowercase: 'One lowercase letter',
             number: 'One number'
         };
-        
+
         const unmetMessages = unmetRequirements.map(req => messages[req]).join(', ');
         showFieldError('password', `Missing: ${unmetMessages}`);
         return false;
     }
-    
+
     clearFieldError('password');
     return true;
 }
@@ -313,12 +351,12 @@ function validatePasswordMatch(password, confirmPassword) {
         showFieldError('confirmPassword', 'Please confirm your password');
         return false;
     }
-    
+
     if (password !== confirmPassword) {
         showFieldError('confirmPassword', 'Passwords do not match');
         return false;
     }
-    
+
     showFieldSuccess('confirmPassword', 'Passwords match');
     return true;
 }
@@ -328,12 +366,12 @@ function validateRole(role) {
         showFieldError('role', 'Please select an account type');
         return false;
     }
-    
+
     if (!['User', 'Admin'].includes(role)) {
         showFieldError('role', 'Invalid account type selected');
         return false;
     }
-    
+
     clearFieldError('role');
     return true;
 }
@@ -343,7 +381,7 @@ function validateTerms(agreed) {
         showFieldError('terms', 'You must agree to the terms and conditions');
         return false;
     }
-    
+
     clearFieldError('terms');
     return true;
 }
@@ -352,23 +390,23 @@ function validateTerms(agreed) {
 function updatePasswordStrength(password) {
     const strengthElement = document.getElementById('passwordStrength');
     const requirementsElement = document.getElementById('passwordRequirements');
-    
+
     if (!strengthElement || !password) {
         if (strengthElement) clearPasswordStrength();
         return;
     }
-    
+
     const requirements = getPasswordRequirements(password);
     const metCount = Object.values(requirements).filter(Boolean).length;
     const strengthLevel = getStrengthLevel(metCount);
-    
+
     // Update strength bar
     const strengthBar = strengthElement.querySelector('.strength-fill');
     const strengthText = strengthElement.querySelector('.strength-text');
-    
+
     strengthElement.className = `password-strength strength-${strengthLevel.name}`;
     strengthText.textContent = `Password strength: ${strengthLevel.label}`;
-    
+
     // Update requirements
     if (requirementsElement) {
         updatePasswordRequirements(requirements);
@@ -392,7 +430,7 @@ function getStrengthLevel(metCount) {
         { name: 'good', label: 'Good' },
         { name: 'strong', label: 'Strong' }
     ];
-    
+
     return levels[metCount] || levels[0];
 }
 
@@ -403,7 +441,7 @@ function updatePasswordRequirements(requirements) {
         lowercase: document.getElementById('lowerReq'),
         number: document.getElementById('numberReq')
     };
-    
+
     Object.entries(requirements).forEach(([key, met]) => {
         const element = requirementElements[key];
         if (element) {
@@ -421,7 +459,7 @@ function clearPasswordStrength() {
             strengthText.textContent = 'Password strength';
         }
     }
-    
+
     // Clear requirements
     const requirements = ['lengthReq', 'upperReq', 'lowerReq', 'numberReq'];
     requirements.forEach(id => {
@@ -435,27 +473,37 @@ function clearPasswordStrength() {
 // ===== PASSWORD TOGGLE =====
 function initializePasswordToggles() {
     const toggleButtons = document.querySelectorAll('.password-toggle');
-    
+
     toggleButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const input = this.parentElement.querySelector('input[type="password"], input[type="text"]');
-            togglePassword(input.id);
+        button.addEventListener('click', function (e) {
+            e.preventDefault();
+            // Find the input inside the same .password-input container
+            const input = this.closest('.password-input').querySelector('input');
+            if (input) {
+                togglePassword(input.id);
+            }
         });
     });
 }
 
 function togglePassword(inputId) {
     const input = document.getElementById(inputId);
-    const toggle = input.parentElement.querySelector('.password-toggle i');
-    
+    if (!input) return;
+    // Find the icon inside the toggle button
+    const toggleBtn = input.parentElement.querySelector('.password-toggle');
+    const toggleIcon = toggleBtn ? toggleBtn.querySelector('i') : null;
     if (input.type === 'password') {
         input.type = 'text';
-        toggle.classList.remove('fa-eye');
-        toggle.classList.add('fa-eye-slash');
+        if (toggleIcon) {
+            toggleIcon.classList.remove('fa-eye');
+            toggleIcon.classList.add('fa-eye-slash');
+        }
     } else {
         input.type = 'password';
-        toggle.classList.remove('fa-eye-slash');
-        toggle.classList.add('fa-eye');
+        if (toggleIcon) {
+            toggleIcon.classList.remove('fa-eye-slash');
+            toggleIcon.classList.add('fa-eye');
+        }
     }
 }
 
@@ -463,9 +511,9 @@ function togglePassword(inputId) {
 function initializeFormValidation() {
     // Add real-time validation classes
     const inputs = document.querySelectorAll('input, select');
-    
+
     inputs.forEach(input => {
-        input.addEventListener('blur', function() {
+        input.addEventListener('blur', function () {
             if (this.value.trim() && this.checkValidity()) {
                 this.classList.add('valid');
                 this.classList.remove('invalid');
@@ -474,8 +522,8 @@ function initializeFormValidation() {
                 this.classList.remove('valid');
             }
         });
-        
-        input.addEventListener('input', function() {
+
+        input.addEventListener('input', function () {
             this.classList.remove('valid', 'invalid');
         });
     });
@@ -488,7 +536,7 @@ function showFieldError(fieldName, message) {
         errorElement.textContent = message;
         errorElement.style.display = 'flex';
     }
-    
+
     const input = document.getElementById(fieldName) || document.querySelector('[name="' + fieldName + '"]');
     if (input) {
         input.classList.add('invalid');
@@ -502,13 +550,13 @@ function showFieldSuccess(fieldName, message) {
         successElement.textContent = message;
         successElement.style.display = 'flex';
     }
-    
+
     const input = document.getElementById(fieldName) || document.querySelector('[name="' + fieldName + '"]');
     if (input) {
         input.classList.add('valid');
         input.classList.remove('invalid');
     }
-    
+
     // Clear error if exists
     clearFieldError(fieldName);
 }
@@ -527,7 +575,7 @@ function clearFormErrors() {
         element.textContent = '';
         element.style.display = 'none';
     });
-    
+
     const inputs = document.querySelectorAll('input, select');
     inputs.forEach(input => {
         input.classList.remove('invalid', 'valid');
@@ -538,13 +586,13 @@ function clearFormErrors() {
 function showLoadingState(buttonId) {
     const button = document.getElementById(buttonId);
     if (!button) return;
-    
+
     const btnText = button.querySelector('.btn-text');
     const spinner = button.querySelector('.loading-spinner');
-    
+
     if (btnText) btnText.style.display = 'none';
     if (spinner) spinner.style.display = 'block';
-    
+
     button.disabled = true;
     button.style.opacity = '0.7';
 }
@@ -552,33 +600,33 @@ function showLoadingState(buttonId) {
 function hideLoadingState(buttonId) {
     const button = document.getElementById(buttonId);
     if (!button) return;
-    
+
     const btnText = button.querySelector('.btn-text');
     const spinner = button.querySelector('.loading-spinner');
-    
+
     if (btnText) btnText.style.display = 'flex';
     if (spinner) spinner.style.display = 'none';
-    
+
     button.disabled = false;
     button.style.opacity = '1';
 }
 
 function showAlert(message, type) {
     if (typeof type === 'undefined') type = 'info';
-    
+
     const alertContainer = document.getElementById('alertContainer');
     if (!alertContainer) return;
-    
+
     const alertElement = document.createElement('div');
     alertElement.className = 'alert alert-' + type;
-    
+
     const icon = getAlertIcon(type);
     alertElement.innerHTML = '<i class="' + icon + '"></i><span>' + message + '</span>';
-    
+
     alertContainer.appendChild(alertElement);
-    
+
     // Auto remove after 5 seconds
-    setTimeout(function() {
+    setTimeout(function () {
         if (alertElement.parentNode) {
             alertElement.remove();
         }
@@ -600,7 +648,7 @@ function debounce(func, wait) {
     let timeout;
     return function executedFunction() {
         const args = arguments;
-        const later = function() {
+        const later = function () {
             clearTimeout(timeout);
             func.apply(null, args);
         };
@@ -634,3 +682,5 @@ const validationCSS = `
 const validationStyle = document.createElement('style');
 validationStyle.textContent = validationCSS;
 document.head.appendChild(validationStyle);
+
+// Add missing closing braces for file

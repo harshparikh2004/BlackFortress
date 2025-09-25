@@ -7,7 +7,44 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeScrollEffects();
     checkSystemStatus();
     initializeInteractiveElements();
+
+    // Secure session check and UI update
+    updateLoginUI();
 });
+
+function updateLoginUI() {
+    const navLinks = document.querySelector('.nav-links');
+    if (!navLinks) return;
+    let user = null;
+    if (localStorage.getItem('user')) {
+        user = JSON.parse(localStorage.getItem('user'));
+    } else if (sessionStorage.getItem('user')) {
+        user = JSON.parse(sessionStorage.getItem('user'));
+    }
+    navLinks.innerHTML = '';
+    navLinks.innerHTML += '<a href="#features">Features</a>';
+    navLinks.innerHTML += '<a href="#security">Security</a>';
+    if (user) {
+        navLinks.innerHTML += `<a href="pages/dashboard.html">Dashboard</a>`;
+        navLinks.innerHTML += `<span class="nav-user"><i class="fas fa-user"></i> ${user.username}</span>`;
+        navLinks.innerHTML += '<a href="#" id="logoutBtn" class="btn-logout">Logout</a>';
+        setTimeout(() => {
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function () {
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('authToken');
+                    sessionStorage.removeItem('user');
+                    sessionStorage.removeItem('authToken');
+                    window.location.reload();
+                });
+            }
+        }, 100);
+    } else {
+        navLinks.innerHTML += '<a href="pages/register.html" class="btn-register">Register</a>';
+        navLinks.innerHTML += '<a href="pages/login.html" class="btn-login">Login</a>';
+    }
+}
 
 // ===== NAVIGATION =====
 function initializeNavigation() {
@@ -24,6 +61,8 @@ function initializeNavigation() {
                     behavior: 'smooth',
                     block: 'start'
                 });
+            } else {
+                console.error('Target element for scroll not found:', targetId);
             }
         });
     });
