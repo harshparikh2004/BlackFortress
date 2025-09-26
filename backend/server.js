@@ -26,7 +26,9 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-    origin: process.env.NODE_ENV === 'production' ? 'your-frontend-domain.com' : 'http://127.0.0.1:5500',
+    origin: process.env.NODE_ENV === 'production'
+        ? 'https://harshparikh2004.github.io/BlackFortress'
+        : 'http://127.0.0.1:5500',
     credentials: true
 }));
 
