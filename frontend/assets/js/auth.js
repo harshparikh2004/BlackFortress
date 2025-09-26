@@ -85,7 +85,8 @@ async function handleLogin(e) {
     const loginData = {
         identifier: formData.get('identifier').trim(),
         password: formData.get('password'),
-        rememberMe: formData.get('rememberMe') === 'on'
+        rememberMe: formData.get('rememberMe') === 'on',
+        recaptchaToken: 'PLACEHOLDER' // TODO: Replace with real token after hosting
     };
 
     // Validate form
@@ -172,7 +173,8 @@ async function handleRegister(e) {
         password: formData.get('password'),
         confirmPassword: formData.get('confirmPassword'),
         role: formData.get('role'),
-        agreeTerms: formData.get('agreeTerms') === 'on'
+        agreeTerms: formData.get('agreeTerms') === 'on',
+        recaptchaToken: 'PLACEHOLDER' // TODO: Replace with real token after hosting
     };
 
     // Validate form
@@ -683,4 +685,24 @@ const validationStyle = document.createElement('style');
 validationStyle.textContent = validationCSS;
 document.head.appendChild(validationStyle);
 
-// Add missing closing braces for file
+
+// Global function for password toggle (used by login.html inline onclick)
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const toggleBtn = input.parentElement.querySelector('.password-toggle');
+    const toggleIcon = toggleBtn ? toggleBtn.querySelector('i') : null;
+    if (input.type === 'password') {
+        input.type = 'text';
+        if (toggleIcon) {
+            toggleIcon.classList.remove('fa-eye');
+            toggleIcon.classList.add('fa-eye-slash');
+        }
+    } else {
+        input.type = 'password';
+        if (toggleIcon) {
+            toggleIcon.classList.remove('fa-eye-slash');
+            toggleIcon.classList.add('fa-eye');
+        }
+    }
+}
