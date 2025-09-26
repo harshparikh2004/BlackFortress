@@ -1,7 +1,7 @@
 // ===== AUTHENTICATION JAVASCRIPT =====
 
 // API Configuration
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://blackfortress-xwfq.onrender.com/api';
 
 document.addEventListener('DOMContentLoaded', function () {
     // Modern workflow: page guards and navigation
