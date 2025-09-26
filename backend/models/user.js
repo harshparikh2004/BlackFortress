@@ -59,9 +59,6 @@ const userSchema = new mongoose.Schema({
     timestamps: true // Automatically manage createdAt and updatedAt
 });
 
-// Index for better query performance
-userSchema.index({ email: 1 });
-userSchema.index({ username: 1 });
 
 // Virtual for account lock status
 userSchema.virtual('isLocked').get(function () {
