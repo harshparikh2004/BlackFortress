@@ -127,11 +127,5 @@ app.use((err, req, res, next) => {
     });
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📝 Environment: ${process.env.NODE_ENV}`);
-    console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
-    console.log(`🧪 Database test: http://localhost:${PORT}/api/test-db`);
-});
-
-module.exports = app;
+const serverless = require('serverless-http');
+module.exports = serverless(app);
