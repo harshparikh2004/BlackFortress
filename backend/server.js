@@ -46,13 +46,27 @@ app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Basic route
-app.get('/', (req, res) => {
+
+// Serve static frontend files
+const path = require('path');
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Basic API route
+app.get('/api', (req, res) => {
     res.json({
         message: 'Secure Login System API is running!',
         version: '1.0.0',
         timestamp: new Date().toISOString()
     });
+});
+
+// SPA fallback: serve index.html for non-API, non-static routes
+app.get('*', (req, res, next) => {
+    if (!req.path.startsWith('/api')) {
+        res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    } else {
+        next();
+    }
 });
 
 // Health check route
