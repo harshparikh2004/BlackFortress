@@ -1,7 +1,7 @@
 // ===== AUTHENTICATION JAVASCRIPT =====
 
 // API Configuration
-const API_BASE_URL = 'https://blackfortress-xwfq.onrender.com';
+const API_BASE_URL = 'https://vercel.com/harshs-projects-75b1c8c1/black-fortress/BAFgmrF68KDv8RNNgBreaC1Fm7io';
 
 document.addEventListener('DOMContentLoaded', function () {
     // Modern workflow: page guards and navigation
