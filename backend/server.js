@@ -32,9 +32,8 @@ app.use(helmet({
             imgSrc: ["'self'", "data:", "https:"],
             connectSrc: [
                 "'self'",
-                process.env.NODE_ENV === 'production'
-                    ? 'https://black-fortress.vercel.app/'
-                    : 'http://localhost:5000'
+                'http://localhost:5000',
+                'https://black-fortress.vercel.app',
             ]
         },
     },
